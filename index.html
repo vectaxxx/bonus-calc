@@ -438,6 +438,49 @@
   }
   .card:hover .card-remove { opacity: 1; }
   .card-remove:hover { background: var(--surface-2); color: var(--warn); }
+  /* TOGGLE SWITCH */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+  }
+  .toggle-label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .toggle-options {
+    display: flex;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    border: 1px solid var(--border);
+  }
+  .toggle-options button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle-options button.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  /* When in FTD mode, hide tier rows in cold block */
+  .tier-block.cold.ftd-mode .tier-row { display: none; }
+  /* In FTD mode, show fixed-price row */
+  .ftd-only { display: none; }
+  .tier-block.cold.ftd-mode .ftd-only { display: grid; }
 </style>
 </head>
 <body>
@@ -490,11 +533,23 @@
         </div>
       </div>
 
-      <div class="tier-block cold">
+      <div class="tier-block cold" id="cold-block">
         <h3>Холодка</h3>
+        <div class="toggle-row">
+          <span class="toggle-label">Режим оплаты</span>
+          <div class="toggle-options" id="cold-mode-toggle">
+            <button data-mode="deposits" class="active">% от депозитов</button>
+            <button data-mode="ftd">Фикса за ФД</button>
+          </div>
+        </div>
         <div class="salary-row">
           <label>Оклад, $</label>
           <input type="number" id="c-salary" value="700" step="50" />
+          <span></span>
+        </div>
+        <div class="salary-row ftd-only">
+          <label>Цена за ФД, $</label>
+          <input type="number" id="c-ftd-price" value="50" step="5" />
           <span></span>
         </div>
         <div class="tier-row">
@@ -682,6 +737,21 @@ function initBonusCalc() {
     return { pct: pct, bonus: amount * pct };
   }
 
+  // Режим оплаты для холодки: 'deposits' или 'ftd'
+  let coldMode = 'deposits';
+
+  // Расчёт бонуса холодки с учётом режима
+  // В режиме 'deposits' amount = $ депозитов
+  // В режиме 'ftd' amount = кол-во ФД
+  function calcCold(amount, schedule) {
+    if (coldMode === 'ftd') {
+      const price = num('c-ftd-price');
+      return { pct: 0, bonus: amount * price, isFtd: true, ftdCount: amount, ftdPrice: price };
+    }
+    const pct = tierPct(amount, schedule);
+    return { pct: pct, bonus: amount * pct, isFtd: false };
+  }
+
   // Реестр динамически добавленных сотрудников (сбрасывается при перезагрузке)
   const dynamicEmployees = []; // [{id, type, sliderId, cardId, totalId, breakdownId, outId, label}]
   let dynamicCounter = 0;
@@ -708,8 +778,8 @@ function initBonusCalc() {
     const vSalary = num('v-salary');
     const teamPct = num('a-team-pct') / 100;
 
-    const c1 = calc(cold1, cSchedule);
-    const c2 = calc(cold2, cSchedule);
+    const c1 = calcCold(cold1, cSchedule);
+    const c2 = calcCold(cold2, cSchedule);
     const v1 = calc(vip1, vSchedule);
     const v2 = calc(vip2, vSchedule);
     const a = calc(artem, aSchedule);
@@ -718,6 +788,7 @@ function initBonusCalc() {
     let dynamicDeposits = 0;
     let dynamicPayroll = 0;
     let dynamicBonusSum = 0;
+    let dynamicColdDeposits = 0; // отдельно объёмы депозитов холодок (не учитываются в эконом. в режиме FTD)
 
     dynamicEmployees.forEach(function(emp) {
       const sliderEl = document.getElementById(emp.sliderId);
@@ -725,15 +796,32 @@ function initBonusCalc() {
       const amount = +sliderEl.value || 0;
       const schedule = emp.type === 'cold' ? cSchedule : vSchedule;
       const salary = emp.type === 'cold' ? cSalary : vSalary;
-      const result = calc(amount, schedule);
+      const result = emp.type === 'cold' ? calcCold(amount, schedule) : calc(amount, schedule);
       const total = salary + result.bonus;
 
-      document.getElementById(emp.outId).textContent = fmt(amount);
-      document.getElementById(emp.totalId).textContent = fmt(total);
-      document.getElementById(emp.breakdownId).textContent =
-        'Оклад ' + fmt(salary) + ' + бонус ' + fmt(result.bonus) + ' (' + pctLabel(result.pct) + ')';
+      // Лейбл и значение зависят от режима для холодки
+      let outText, breakText;
+      if (emp.type === 'cold' && coldMode === 'ftd') {
+        outText = amount + ' ФД';
+        breakText = 'Оклад ' + fmt(salary) + ' + бонус ' + fmt(result.bonus) +
+                    ' (' + amount + ' × $' + result.ftdPrice + ')';
+        // НЕ добавляем в dynamicDeposits — холодка в режиме ФД из объёма выпадает
+      } else {
+        outText = fmt(amount);
+        breakText = 'Оклад ' + fmt(salary) + ' + бонус ' + fmt(result.bonus) + ' (' + pctLabel(result.pct) + ')';
+        if (emp.type === 'cold') {
+          dynamicColdDeposits += amount;
+        }
+        dynamicDeposits += amount;
+      }
+      if (emp.type !== 'cold') {
+        // ВИП всегда в депозитах
+      }
 
-      dynamicDeposits += amount;
+      document.getElementById(emp.outId).textContent = outText;
+      document.getElementById(emp.totalId).textContent = fmt(total);
+      document.getElementById(emp.breakdownId).textContent = breakText;
+
       dynamicPayroll += total;
       dynamicBonusSum += result.bonus;
     });
@@ -752,13 +840,24 @@ function initBonusCalc() {
       'Оклад ' + fmt(aSalary) + ' + личный ' + fmt(a.bonus) + ' (' + pctLabel(a.pct) +
       ') + командный ' + fmt(artemTeamBonus) + ' (' + (teamPct * 100).toFixed(1).replace(/\.0$/, '') + '% от ' + fmt(teamBonusSum) + ')';
 
+    // Холодка 1: текст зависит от режима
     document.getElementById('cold1-total').textContent = fmt(cold1Total);
-    document.getElementById('cold1-breakdown').textContent =
-      'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c1.bonus) + ' (' + pctLabel(c1.pct) + ')';
-
     document.getElementById('cold2-total').textContent = fmt(cold2Total);
-    document.getElementById('cold2-breakdown').textContent =
-      'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c2.bonus) + ' (' + pctLabel(c2.pct) + ')';
+    if (coldMode === 'ftd') {
+      document.getElementById('cold1-out').textContent = cold1 + ' ФД';
+      document.getElementById('cold2-out').textContent = cold2 + ' ФД';
+      document.getElementById('cold1-breakdown').textContent =
+        'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c1.bonus) + ' (' + cold1 + ' × $' + c1.ftdPrice + ')';
+      document.getElementById('cold2-breakdown').textContent =
+        'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c2.bonus) + ' (' + cold2 + ' × $' + c2.ftdPrice + ')';
+    } else {
+      document.getElementById('cold1-out').textContent = fmt(cold1);
+      document.getElementById('cold2-out').textContent = fmt(cold2);
+      document.getElementById('cold1-breakdown').textContent =
+        'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c1.bonus) + ' (' + pctLabel(c1.pct) + ')';
+      document.getElementById('cold2-breakdown').textContent =
+        'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c2.bonus) + ' (' + pctLabel(c2.pct) + ')';
+    }
 
     document.getElementById('vip1-total').textContent = fmt(vip1Total);
     document.getElementById('vip1-breakdown').textContent =
@@ -768,7 +867,9 @@ function initBonusCalc() {
     document.getElementById('vip2-breakdown').textContent =
       'Оклад ' + fmt(vSalary) + ' + бонус ' + fmt(v2.bonus) + ' (' + pctLabel(v2.pct) + ')';
 
-    const totalDep = artem + cold1 + cold2 + vip1 + vip2 + dynamicDeposits;
+    // В режиме FTD депозиты холодок (cold1, cold2 — это кол-во ФД, не сумма) исключаем
+    const coldDepContribution = (coldMode === 'ftd') ? 0 : (cold1 + cold2);
+    const totalDep = artem + coldDepContribution + vip1 + vip2 + dynamicDeposits;
     const totalPayroll = artemTotal + cold1Total + cold2Total + vip1Total + vip2Total + dynamicPayroll;
     const pct = totalDep > 0 ? (totalPayroll / totalDep * 100) : 0;
 
@@ -816,20 +917,29 @@ function initBonusCalc() {
     // Подсчёт порядкового номера в своей категории
     const sameTypeCount = dynamicEmployees.filter(function(e) { return e.type === type; }).length;
     const baseCount = type === 'cold' ? 2 : 2; // у нас уже Холодка 1-2 и ВИП 1-2
-    const label = (type === 'cold' ? 'Холодка ' : 'ВИП ') + (baseCount + sameTypeCount + 1);
+    const baseLabel = (type === 'cold' ? 'Холодка ' : 'ВИП ') + (baseCount + sameTypeCount + 1);
 
-    // Стандартный объём депозитов
-    const defaultAmount = type === 'cold' ? 25000 : 60000;
-    const maxAmount = type === 'cold' ? 120000 : 200000;
+    // Параметры ползунка зависят от режима для холодки
+    let defaultAmount, maxAmount, step, displayLabel;
+    if (type === 'cold' && coldMode === 'ftd') {
+      defaultAmount = 5; maxAmount = 200; step = 1;
+      displayLabel = baseLabel + ' (ФД)';
+    } else if (type === 'cold') {
+      defaultAmount = 25000; maxAmount = 120000; step = 1000;
+      displayLabel = baseLabel;
+    } else {
+      defaultAmount = 60000; maxAmount = 200000; step = 1000;
+      displayLabel = baseLabel;
+    }
 
     // Создаём ползунок
     const sliderRow = document.createElement('div');
     sliderRow.className = 'slider-row';
     sliderRow.id = id + '-row';
     sliderRow.innerHTML =
-      '<label>' + label + '</label>' +
-      '<input type="range" min="0" max="' + maxAmount + '" value="' + defaultAmount + '" step="1000" id="' + sliderId + '" />' +
-      '<span class="val" id="' + outId + '">' + fmt(defaultAmount) + '</span>';
+      '<label>' + displayLabel + '</label>' +
+      '<input type="range" min="0" max="' + maxAmount + '" value="' + defaultAmount + '" step="' + step + '" id="' + sliderId + '" />' +
+      '<span class="val" id="' + outId + '">' + (type === 'cold' && coldMode === 'ftd' ? defaultAmount + ' ФД' : fmt(defaultAmount)) + '</span>';
     document.getElementById('dynamic-sliders').appendChild(sliderRow);
 
     // Создаём карточку зарплаты
@@ -838,14 +948,15 @@ function initBonusCalc() {
     card.id = cardId;
     card.innerHTML =
       '<button class="card-remove" data-id="' + id + '" aria-label="Удалить">✕</button>' +
-      '<div class="card-head"><span class="card-name">' + label + '</span><span class="card-total" id="' + totalId + '">$0</span></div>' +
+      '<div class="card-head"><span class="card-name">' + baseLabel + '</span><span class="card-total" id="' + totalId + '">$0</span></div>' +
       '<div class="card-break" id="' + breakdownId + '"></div>';
     document.getElementById('dynamic-employees').appendChild(card);
 
-    // Регистрируем
+    // Регистрируем (с состоянием для двух режимов на случай холодки)
     dynamicEmployees.push({
       id: id, type: type, sliderId: sliderId, outId: outId,
-      cardId: cardId, totalId: totalId, breakdownId: breakdownId, label: label
+      cardId: cardId, totalId: totalId, breakdownId: breakdownId, label: baseLabel,
+      state: type === 'cold' ? { deposits: 25000, ftd: 5 } : null
     });
 
     // Подключаем события
@@ -892,12 +1003,92 @@ function initBonusCalc() {
     'artem','cold1','cold2','vip1','vip2',
     'a-salary','a-t1-min','a-t1-max','a-t1-pct','a-t2-min','a-t2-max','a-t2-pct','a-t3-min','a-t3-pct','a-team-pct',
     'c-salary','c-t1-min','c-t1-max','c-t1-pct','c-t2-min','c-t2-max','c-t2-pct','c-t3-min','c-t3-pct',
+    'c-ftd-price',
     'v-salary','v-t1-min','v-t1-max','v-t1-pct','v-t2-min','v-t2-max','v-t2-pct','v-t3-min','v-t3-pct'
   ];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', update);
   });
+
+  // Тумблер режима оплаты для холодки
+  // Сохраняем последние значения для каждого режима отдельно
+  const coldSliderState = {
+    cold1: { deposits: 25000, ftd: 5 },
+    cold2: { deposits: 40000, ftd: 8 }
+  };
+  // Для динамических холодок состояние храним в самом dynamicEmployees
+  function applyColdMode(mode) {
+    const prevMode = coldMode;
+    if (prevMode === mode) return;
+
+    // Сохраняем текущие значения ползунков перед сменой
+    ['cold1', 'cold2'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) coldSliderState[id][prevMode] = +el.value;
+    });
+    dynamicEmployees.forEach(function(emp) {
+      if (emp.type !== 'cold') return;
+      const el = document.getElementById(emp.sliderId);
+      if (!el) return;
+      if (!emp.state) emp.state = { deposits: 25000, ftd: 5 };
+      emp.state[prevMode] = +el.value;
+    });
+
+    coldMode = mode;
+
+    // Обновляем класс блока холодки
+    const block = document.getElementById('cold-block');
+    if (mode === 'ftd') block.classList.add('ftd-mode');
+    else block.classList.remove('ftd-mode');
+
+    // Обновляем кнопки тумблера
+    document.querySelectorAll('#cold-mode-toggle button').forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+    });
+
+    // Обновляем лейблы и диапазоны базовых ползунков холодки
+    ['cold1', 'cold2'].forEach(function(id, idx) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const labelEl = el.parentElement.querySelector('label');
+      if (mode === 'ftd') {
+        el.min = 0; el.max = 200; el.step = 1;
+        el.value = coldSliderState[id].ftd;
+        if (labelEl) labelEl.textContent = 'Холодка ' + (idx + 1) + ' (ФД)';
+      } else {
+        el.min = 0; el.max = 120000; el.step = 1000;
+        el.value = coldSliderState[id].deposits;
+        if (labelEl) labelEl.textContent = 'Холодка ' + (idx + 1);
+      }
+    });
+
+    // Обновляем динамические ползунки холодки
+    dynamicEmployees.forEach(function(emp) {
+      if (emp.type !== 'cold') return;
+      const el = document.getElementById(emp.sliderId);
+      if (!el) return;
+      const labelEl = el.parentElement.querySelector('label');
+      if (!emp.state) emp.state = { deposits: 25000, ftd: 5 };
+      if (mode === 'ftd') {
+        el.min = 0; el.max = 200; el.step = 1;
+        el.value = emp.state.ftd;
+        if (labelEl) labelEl.textContent = emp.label + ' (ФД)';
+      } else {
+        el.min = 0; el.max = 120000; el.step = 1000;
+        el.value = emp.state.deposits;
+        if (labelEl) labelEl.textContent = emp.label;
+      }
+    });
+
+    update();
+  }
+  document.querySelectorAll('#cold-mode-toggle button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyColdMode(btn.getAttribute('data-mode'));
+    });
+  });
+
   window.bonusCalcUpdate = update; // expose for economics modal
   update();
 }
