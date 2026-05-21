@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Калькулятор бонусов колл-центра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #161a21;
+    --surface-2: #1d222b;
+    --border: #2a3038;
+    --border-strong: #3a4250;
+    --text: #e8eaed;
+    --text-muted: #9ba3b0;
+    --text-dim: #6b7280;
+    --accent: #5dcaa5;
+    --accent-dim: #1d9e75;
+    --warn: #f0997b;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  header {
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 28px 0 14px;
+  }
+  h2:first-child { margin-top: 0; }
+  .tier-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .tier-block h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tier-block h3::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .tier-block.cold h3::before { background: #85b7eb; }
+  .tier-block.vip h3::before { background: #ef9f27; }
+  .salary-row, .team-row {
+    display: grid;
+    grid-template-columns: 140px 120px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .salary-row label, .team-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .team-row .hint {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .tier-row {
+    display: grid;
+    grid-template-columns: 80px 110px 12px 110px 70px 80px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .tier-row .lbl { color: var(--text-muted); }
+  .tier-row .sep { text-align: center; color: var(--text-dim); }
+  input[type="number"] {
+    height: 34px;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="number"]:focus {
+    border-color: var(--accent);
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .slider-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 110px;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .slider-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .slider-row .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: right;
+    color: var(--text);
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    transition: transform 0.1s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .card.lead { border-color: var(--accent-dim); }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .card-name { font-weight: 600; font-size: 15px; }
+  .card-total {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .card-break {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  @media (max-width: 600px) { .summary { grid-template-columns: 1fr; } }
+  .stat {
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  /* SECRET ECONOMICS MODAL */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 40px 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    max-width: 720px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-head h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: none;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .modal-head .sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .modal-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.15s;
+  }
+  .modal-close:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .modal-section { margin-bottom: 20px; }
+  .modal-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .param-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 30px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .param-row label { color: var(--text-muted); }
+  .param-row .unit { color: var(--text-dim); font-size: 12px; }
+  .pnl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pnl-row:last-child { border-bottom: none; }
+  .pnl-row .lbl { color: var(--text-muted); }
+  .pnl-row .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .pnl-row.minus .val { color: var(--warn); }
+  .pnl-row.plus .val { color: var(--accent); }
+  .pnl-row.total {
+    margin-top: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-strong);
+    border-bottom: none;
+  }
+  .pnl-row.total .lbl { color: var(--text); font-weight: 600; font-size: 15px; }
+  .pnl-row.total .val { font-size: 20px; font-weight: 600; }
+  .pnl-row.total.positive .val { color: var(--accent); }
+  .pnl-row.total.negative .val { color: var(--warn); }
+  .margin-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  /* ADD EMPLOYEE BUTTON */
+  .add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    margin: 4px 0 10px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--surface);
+  }
+  .add-btn .plus { font-size: 16px; line-height: 1; }
+  /* TYPE PICKER MODAL */
+  .picker-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .picker-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font-family: 'Manrope', sans-serif;
+    color: var(--text);
+  }
+  .picker-card:hover {
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .picker-card .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .picker-card.cold .dot { background: #85b7eb; }
+  .picker-card.vip .dot { background: #ef9f27; }
+  .picker-card .name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .picker-card .desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  /* Card remove button */
+  .card { position: relative; }
+  .card-remove {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.15s;
+  }
+  .card:hover .card-remove { opacity: 1; }
+  .card-remove:hover { background: var(--surface-2); color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Калькулятор бонусов колл-центра</h1>
+    <div class="subtitle">Модель ФОТ с настраиваемыми тирами и командным бонусом</div>
+  </header>
+
+  <div class="grid">
+    <!-- ЛЕВАЯ КОЛОНКА: НАСТРОЙКИ -->
+    <div>
+      <h2>Настройка схемы</h2>
+
+      <div class="tier-block">
+        <h3>Wincent (тимлид)</h3>
+        <div class="salary-row">
+          <label>Оклад, $</label>
+          <input type="number" id="a-salary" value="1500" step="50" />
+          <span></span>
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 1: от</span>
+          <input type="number" id="a-t1-min" value="10000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="a-t1-max" value="50000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="a-t1-pct" value="2" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 2: от</span>
+          <input type="number" id="a-t2-min" value="50000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="a-t2-max" value="80000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="a-t2-pct" value="2.5" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 3: от</span>
+          <input type="number" id="a-t3-min" value="80000" step="1000" />
+          <span class="sep">—</span>
+          <span style="text-align:center; color: var(--text-dim);">∞</span>
+          <span class="lbl">%:</span>
+          <input type="number" id="a-t3-pct" value="3" step="0.1" />
+        </div>
+        <div class="team-row" style="margin-top: 14px;">
+          <label>Командный, %</label>
+          <input type="number" id="a-team-pct" value="5" step="0.5" />
+          <span class="hint">от суммы бонусов менеджеров</span>
+        </div>
+      </div>
+
+      <div class="tier-block cold">
+        <h3>Холодка</h3>
+        <div class="salary-row">
+          <label>Оклад, $</label>
+          <input type="number" id="c-salary" value="700" step="50" />
+          <span></span>
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 1: от</span>
+          <input type="number" id="c-t1-min" value="5000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="c-t1-max" value="25000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="c-t1-pct" value="2" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 2: от</span>
+          <input type="number" id="c-t2-min" value="25000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="c-t2-max" value="50000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="c-t2-pct" value="2.5" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 3: от</span>
+          <input type="number" id="c-t3-min" value="50000" step="1000" />
+          <span class="sep">—</span>
+          <span style="text-align:center; color: var(--text-dim);">∞</span>
+          <span class="lbl">%:</span>
+          <input type="number" id="c-t3-pct" value="3" step="0.1" />
+        </div>
+      </div>
+
+      <div class="tier-block vip">
+        <h3>ВИП</h3>
+        <div class="salary-row">
+          <label>Оклад, $</label>
+          <input type="number" id="v-salary" value="1100" step="50" />
+          <span></span>
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 1: от</span>
+          <input type="number" id="v-t1-min" value="10000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="v-t1-max" value="50000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="v-t1-pct" value="2" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 2: от</span>
+          <input type="number" id="v-t2-min" value="50000" step="1000" />
+          <span class="sep">—</span>
+          <input type="number" id="v-t2-max" value="80000" step="1000" />
+          <span class="lbl">%:</span>
+          <input type="number" id="v-t2-pct" value="2.5" step="0.1" />
+        </div>
+        <div class="tier-row">
+          <span class="lbl">Тир 3: от</span>
+          <input type="number" id="v-t3-min" value="80000" step="1000" />
+          <span class="sep">—</span>
+          <span style="text-align:center; color: var(--text-dim);">∞</span>
+          <span class="lbl">%:</span>
+          <input type="number" id="v-t3-pct" value="3" step="0.1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ПРАВАЯ КОЛОНКА: ОБЪЁМЫ + РЕЗУЛЬТАТЫ -->
+    <div>
+      <h2>Объёмы депозитов</h2>
+      <div class="slider-row">
+        <label>Wincent</label>
+        <input type="range" min="0" max="200000" value="60000" step="1000" id="artem" />
+        <span class="val" id="artem-out">$60,000</span>
+      </div>
+      <div class="slider-row">
+        <label>Холодка 1</label>
+        <input type="range" min="0" max="120000" value="25000" step="1000" id="cold1" />
+        <span class="val" id="cold1-out">$25,000</span>
+      </div>
+      <div class="slider-row">
+        <label>Холодка 2</label>
+        <input type="range" min="0" max="120000" value="40000" step="1000" id="cold2" />
+        <span class="val" id="cold2-out">$40,000</span>
+      </div>
+      <div class="slider-row">
+        <label>ВИП 1</label>
+        <input type="range" min="0" max="200000" value="60000" step="1000" id="vip1" />
+        <span class="val" id="vip1-out">$60,000</span>
+      </div>
+      <div class="slider-row">
+        <label>ВИП 2</label>
+        <input type="range" min="0" max="200000" value="100000" step="1000" id="vip2" />
+        <span class="val" id="vip2-out">$100,000</span>
+      </div>
+
+      <!-- Dynamically added employee sliders go here -->
+      <div id="dynamic-sliders"></div>
+
+      <h2 style="margin-top: 32px;">Зарплаты</h2>
+      <div class="card lead">
+        <div class="card-head"><span class="card-name">Wincent</span><span class="card-total" id="artem-total">$0</span></div>
+        <div class="card-break" id="artem-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">Холодка 1</span><span class="card-total" id="cold1-total">$0</span></div>
+        <div class="card-break" id="cold1-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">Холодка 2</span><span class="card-total" id="cold2-total">$0</span></div>
+        <div class="card-break" id="cold2-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">ВИП 1</span><span class="card-total" id="vip1-total">$0</span></div>
+        <div class="card-break" id="vip1-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">ВИП 2</span><span class="card-total" id="vip2-total">$0</span></div>
+        <div class="card-break" id="vip2-breakdown"></div>
+      </div>
+
+      <!-- Dynamically added employee cards go here -->
+      <div id="dynamic-employees"></div>
+
+      <button class="add-btn" id="add-employee-btn">
+        <span class="plus">+</span>
+        <span>Добавить сотрудника</span>
+      </button>
+
+      <h2 style="margin-top: 28px;">Итого</h2>
+      <div class="summary">
+        <div class="stat">
+          <div class="stat-label">Депозиты</div>
+          <div class="stat-value" id="total-deposits">$0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">ФОТ</div>
+          <div class="stat-value" id="total-payroll">$0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">ФОТ / Депозиты</div>
+          <div class="stat-value" id="payroll-pct">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Модель «плоского» тира: при попадании в верхний диапазон процент применяется ко всему объёму.
+  </div>
+</div>
+
+<script>
+(function() {
+  function num(id) { return +document.getElementById(id).value || 0; }
+  function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+  function pctLabel(pct) {
+    if (pct === 0) return 'нет';
+    const p = pct * 100;
+    return (Math.round(p * 10) / 10).toString().replace(/\.0$/, '') + '%';
+  }
+
+  function buildSchedule(prefix) {
+    return [
+      [num(prefix + '-t3-min'), num(prefix + '-t3-pct') / 100],
+      [num(prefix + '-t2-min'), num(prefix + '-t2-pct') / 100],
+      [num(prefix + '-t1-min'), num(prefix + '-t1-pct') / 100]
+    ];
+  }
+
+  function tierPct(amount, schedule) {
+    const lowest = schedule[schedule.length - 1][0];
+    if (amount < lowest) return 0;
+    for (const [threshold, pct] of schedule) {
+      if (amount >= threshold) return pct;
+    }
+    return 0;
+  }
+
+  function calc(amount, schedule) {
+    const pct = tierPct(amount, schedule);
+    return { pct: pct, bonus: amount * pct };
+  }
+
+  // Реестр динамически добавленных сотрудников (сбрасывается при перезагрузке)
+  const dynamicEmployees = []; // [{id, type, sliderId, cardId, totalId, breakdownId, outId, label}]
+  let dynamicCounter = 0;
+
+  function update() {
+    const artem = num('artem');
+    const cold1 = num('cold1');
+    const cold2 = num('cold2');
+    const vip1 = num('vip1');
+    const vip2 = num('vip2');
+
+    document.getElementById('artem-out').textContent = fmt(artem);
+    document.getElementById('cold1-out').textContent = fmt(cold1);
+    document.getElementById('cold2-out').textContent = fmt(cold2);
+    document.getElementById('vip1-out').textContent = fmt(vip1);
+    document.getElementById('vip2-out').textContent = fmt(vip2);
+
+    const aSchedule = buildSchedule('a');
+    const cSchedule = buildSchedule('c');
+    const vSchedule = buildSchedule('v');
+
+    const aSalary = num('a-salary');
+    const cSalary = num('c-salary');
+    const vSalary = num('v-salary');
+    const teamPct = num('a-team-pct') / 100;
+
+    const c1 = calc(cold1, cSchedule);
+    const c2 = calc(cold2, cSchedule);
+    const v1 = calc(vip1, vSchedule);
+    const v2 = calc(vip2, vSchedule);
+    const a = calc(artem, aSchedule);
+
+    // Считаем динамических сотрудников
+    let dynamicDeposits = 0;
+    let dynamicPayroll = 0;
+    let dynamicBonusSum = 0;
+
+    dynamicEmployees.forEach(function(emp) {
+      const sliderEl = document.getElementById(emp.sliderId);
+      if (!sliderEl) return;
+      const amount = +sliderEl.value || 0;
+      const schedule = emp.type === 'cold' ? cSchedule : vSchedule;
+      const salary = emp.type === 'cold' ? cSalary : vSalary;
+      const result = calc(amount, schedule);
+      const total = salary + result.bonus;
+
+      document.getElementById(emp.outId).textContent = fmt(amount);
+      document.getElementById(emp.totalId).textContent = fmt(total);
+      document.getElementById(emp.breakdownId).textContent =
+        'Оклад ' + fmt(salary) + ' + бонус ' + fmt(result.bonus) + ' (' + pctLabel(result.pct) + ')';
+
+      dynamicDeposits += amount;
+      dynamicPayroll += total;
+      dynamicBonusSum += result.bonus;
+    });
+
+    const teamBonusSum = c1.bonus + c2.bonus + v1.bonus + v2.bonus + dynamicBonusSum;
+    const artemTeamBonus = teamBonusSum * teamPct;
+    const artemTotal = aSalary + a.bonus + artemTeamBonus;
+
+    const cold1Total = cSalary + c1.bonus;
+    const cold2Total = cSalary + c2.bonus;
+    const vip1Total = vSalary + v1.bonus;
+    const vip2Total = vSalary + v2.bonus;
+
+    document.getElementById('artem-total').textContent = fmt(artemTotal);
+    document.getElementById('artem-breakdown').textContent =
+      'Оклад ' + fmt(aSalary) + ' + личный ' + fmt(a.bonus) + ' (' + pctLabel(a.pct) +
+      ') + командный ' + fmt(artemTeamBonus) + ' (' + (teamPct * 100).toFixed(1).replace(/\.0$/, '') + '% от ' + fmt(teamBonusSum) + ')';
+
+    document.getElementById('cold1-total').textContent = fmt(cold1Total);
+    document.getElementById('cold1-breakdown').textContent =
+      'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c1.bonus) + ' (' + pctLabel(c1.pct) + ')';
+
+    document.getElementById('cold2-total').textContent = fmt(cold2Total);
+    document.getElementById('cold2-breakdown').textContent =
+      'Оклад ' + fmt(cSalary) + ' + бонус ' + fmt(c2.bonus) + ' (' + pctLabel(c2.pct) + ')';
+
+    document.getElementById('vip1-total').textContent = fmt(vip1Total);
+    document.getElementById('vip1-breakdown').textContent =
+      'Оклад ' + fmt(vSalary) + ' + бонус ' + fmt(v1.bonus) + ' (' + pctLabel(v1.pct) + ')';
+
+    document.getElementById('vip2-total').textContent = fmt(vip2Total);
+    document.getElementById('vip2-breakdown').textContent =
+      'Оклад ' + fmt(vSalary) + ' + бонус ' + fmt(v2.bonus) + ' (' + pctLabel(v2.pct) + ')';
+
+    const totalDep = artem + cold1 + cold2 + vip1 + vip2 + dynamicDeposits;
+    const totalPayroll = artemTotal + cold1Total + cold2Total + vip1Total + vip2Total + dynamicPayroll;
+    const pct = totalDep > 0 ? (totalPayroll / totalDep * 100) : 0;
+
+    document.getElementById('total-deposits').textContent = fmt(totalDep);
+    document.getElementById('total-payroll').textContent = fmt(totalPayroll);
+    document.getElementById('payroll-pct').textContent = pct.toFixed(1) + '%';
+  }
+
+  // Добавление нового сотрудника
+  function addEmployee(type) {
+    dynamicCounter++;
+    const id = 'emp-' + dynamicCounter;
+    const sliderId = id + '-slider';
+    const outId = id + '-out';
+    const cardId = id + '-card';
+    const totalId = id + '-total';
+    const breakdownId = id + '-breakdown';
+
+    // Подсчёт порядкового номера в своей категории
+    const sameTypeCount = dynamicEmployees.filter(function(e) { return e.type === type; }).length;
+    const baseCount = type === 'cold' ? 2 : 2; // у нас уже Холодка 1-2 и ВИП 1-2
+    const label = (type === 'cold' ? 'Холодка ' : 'ВИП ') + (baseCount + sameTypeCount + 1);
+
+    // Стандартный объём депозитов
+    const defaultAmount = type === 'cold' ? 25000 : 60000;
+    const maxAmount = type === 'cold' ? 120000 : 200000;
+
+    // Создаём ползунок
+    const sliderRow = document.createElement('div');
+    sliderRow.className = 'slider-row';
+    sliderRow.id = id + '-row';
+    sliderRow.innerHTML =
+      '<label>' + label + '</label>' +
+      '<input type="range" min="0" max="' + maxAmount + '" value="' + defaultAmount + '" step="1000" id="' + sliderId + '" />' +
+      '<span class="val" id="' + outId + '">' + fmt(defaultAmount) + '</span>';
+    document.getElementById('dynamic-sliders').appendChild(sliderRow);
+
+    // Создаём карточку зарплаты
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = cardId;
+    card.innerHTML =
+      '<button class="card-remove" data-id="' + id + '" aria-label="Удалить">✕</button>' +
+      '<div class="card-head"><span class="card-name">' + label + '</span><span class="card-total" id="' + totalId + '">$0</span></div>' +
+      '<div class="card-break" id="' + breakdownId + '"></div>';
+    document.getElementById('dynamic-employees').appendChild(card);
+
+    // Регистрируем
+    dynamicEmployees.push({
+      id: id, type: type, sliderId: sliderId, outId: outId,
+      cardId: cardId, totalId: totalId, breakdownId: breakdownId, label: label
+    });
+
+    // Подключаем события
+    document.getElementById(sliderId).addEventListener('input', update);
+    card.querySelector('.card-remove').addEventListener('click', function() {
+      removeEmployee(id);
+    });
+
+    update();
+  }
+
+  function removeEmployee(id) {
+    const idx = dynamicEmployees.findIndex(function(e) { return e.id === id; });
+    if (idx === -1) return;
+    const emp = dynamicEmployees[idx];
+    const row = document.getElementById(emp.id + '-row');
+    const card = document.getElementById(emp.cardId);
+    if (row) row.remove();
+    if (card) card.remove();
+    dynamicEmployees.splice(idx, 1);
+    update();
+  }
+
+  // Подключение попапа выбора типа
+  const pickerModal = document.getElementById('picker-modal');
+  document.getElementById('add-employee-btn').addEventListener('click', function() {
+    pickerModal.classList.add('open');
+  });
+  document.getElementById('picker-close').addEventListener('click', function() {
+    pickerModal.classList.remove('open');
+  });
+  pickerModal.addEventListener('click', function(e) {
+    if (e.target === pickerModal) pickerModal.classList.remove('open');
+  });
+  document.querySelectorAll('.picker-card').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const type = btn.getAttribute('data-type');
+      pickerModal.classList.remove('open');
+      addEmployee(type);
+    });
+  });
+
+  const ids = [
+    'artem','cold1','cold2','vip1','vip2',
+    'a-salary','a-t1-min','a-t1-max','a-t1-pct','a-t2-min','a-t2-max','a-t2-pct','a-t3-min','a-t3-pct','a-team-pct',
+    'c-salary','c-t1-min','c-t1-max','c-t1-pct','c-t2-min','c-t2-max','c-t2-pct','c-t3-min','c-t3-pct',
+    'v-salary','v-t1-min','v-t1-max','v-t1-pct','v-t2-min','v-t2-max','v-t2-pct','v-t3-min','v-t3-pct'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', update);
+  });
+  update();
+})();
+</script>
+<!-- TYPE PICKER MODAL -->
+<div class="modal-backdrop" id="picker-modal">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-head">
+      <div>
+        <h2>Добавить сотрудника</h2>
+        <div class="sub">Выбери тип — будут использованы стандартные ставки</div>
+      </div>
+      <button class="modal-close" id="picker-close" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="picker-options">
+      <button class="picker-card cold" data-type="cold">
+        <div class="name"><span class="dot"></span>Холодка</div>
+        <div class="desc">$700 оклад<br>Тиры: 2% / 2.5% / 3%<br>Пороги: $5k / $25k / $50k</div>
+      </button>
+      <button class="picker-card vip" data-type="vip">
+        <div class="name"><span class="dot"></span>ВИП</div>
+        <div class="desc">$1100 оклад<br>Тиры: 2% / 2.5% / 3%<br>Пороги: $10k / $50k / $80k</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SECRET ECONOMICS MODAL: Cmd+Shift+E (Mac) or Ctrl+Shift+E (Win) -->
+<div class="modal-backdrop" id="econ-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>Экономика <span class="margin-badge" id="margin-badge">маржа 0%</span></h2>
+        <div class="sub">Конфиденциально · Cmd/Ctrl + Shift + E для открытия</div>
+      </div>
+      <button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Параметры (можно менять)</div>
+      <div class="param-row">
+        <label>Выводы игроков</label>
+        <input type="number" id="p-withdraw" value="45" step="1" min="0" max="100" />
+        <span class="unit">%</span>
+      </div>
+      <div class="param-row">
+        <label>Комиссии (платёжки + платформа + роялти)</label>
+        <input type="number" id="p-fees" value="65" step="1" min="0" max="100" />
+        <span class="unit">% от NGR</span>
+      </div>
+      <div class="param-row">
+        <label>Ревшара</label>
+        <input type="number" id="p-revshare" value="50" step="1" min="0" max="100" />
+        <span class="unit">% от чистого</span>
+      </div>
+      <div class="param-row">
+        <label>Телефония и аккаунты</label>
+        <input type="number" id="p-tech" value="1" step="0.1" min="0" max="100" />
+        <span class="unit">% от депозитов</span>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">P&amp;L</div>
+      <div class="pnl-row plus">
+        <span class="lbl">Депозиты</span>
+        <span class="val" id="econ-deposits">$0</span>
+      </div>
+      <div class="pnl-row minus">
+        <span class="lbl" id="econ-withdraw-lbl">− Выводы игроков (45%)</span>
+        <span class="val" id="econ-withdraw">$0</span>
+      </div>
+      <div class="pnl-row">
+        <span class="lbl">= NGR (доход казино)</span>
+        <span class="val" id="econ-ngr">$0</span>
+      </div>
+      <div class="pnl-row minus">
+        <span class="lbl" id="econ-fees-lbl">− Комиссии (65% от NGR)</span>
+        <span class="val" id="econ-fees">$0</span>
+      </div>
+      <div class="pnl-row">
+        <span class="lbl">= Чистый доход</span>
+        <span class="val" id="econ-net">$0</span>
+      </div>
+      <div class="pnl-row minus">
+        <span class="lbl" id="econ-revshare-lbl">− Ревшара (50% от чистого)</span>
+        <span class="val" id="econ-revshare">$0</span>
+      </div>
+      <div class="pnl-row minus">
+        <span class="lbl">− ФОТ команды</span>
+        <span class="val" id="econ-payroll">$0</span>
+      </div>
+      <div class="pnl-row minus">
+        <span class="lbl" id="econ-tech-lbl">− Телефония и аккаунты (1% от деп.)</span>
+        <span class="val" id="econ-tech">$0</span>
+      </div>
+      <div class="pnl-row total" id="econ-profit-row">
+        <span class="lbl">Прибыль</span>
+        <span class="val" id="econ-profit">$0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function() {
+  // Доступ к функциям из основного скрипта через DOM
+  const modal = document.getElementById('econ-modal');
+  const closeBtn = document.getElementById('modal-close');
+  const marginBadge = document.getElementById('margin-badge');
+
+  // Параметры экономики
+  const params = ['p-withdraw', 'p-fees', 'p-revshare', 'p-tech'];
+
+  function num(id) { return +document.getElementById(id).value || 0; }
+  function fmt(n) {
+    const sign = n < 0 ? '-$' : '$';
+    return sign + Math.abs(Math.round(n)).toLocaleString('en-US');
+  }
+  function pctStr(p) {
+    return (Math.round(p * 10) / 10).toString().replace(/\.0$/, '');
+  }
+
+  function updateEconomics() {
+    // Получаем суммы из видимых ячеек (включают динамических сотрудников)
+    const depositsText = document.getElementById('total-deposits').textContent;
+    const deposits = +depositsText.replace(/[^0-9.-]/g, '') || 0;
+
+    const payrollText = document.getElementById('total-payroll').textContent;
+    const payroll = +payrollText.replace(/[^0-9.-]/g, '') || 0;
+
+    // Параметры
+    const wPct = num('p-withdraw') / 100;
+    const fPct = num('p-fees') / 100;
+    const rPct = num('p-revshare') / 100;
+    const tPct = num('p-tech') / 100;
+
+    // P&L по цепочке
+    const withdraw = deposits * wPct;
+    const ngr = deposits - withdraw;
+    const fees = ngr * fPct;
+    const netRevenue = ngr - fees;
+    const revshare = netRevenue * rPct;
+    const tech = deposits * tPct;
+    const profit = netRevenue - revshare - payroll - tech;
+
+    // Обновляем подписи с актуальными процентами
+    document.getElementById('econ-withdraw-lbl').textContent =
+      '− Выводы игроков (' + pctStr(wPct * 100) + '%)';
+    document.getElementById('econ-fees-lbl').textContent =
+      '− Комиссии (' + pctStr(fPct * 100) + '% от NGR)';
+    document.getElementById('econ-revshare-lbl').textContent =
+      '− Ревшара (' + pctStr(rPct * 100) + '% от чистого)';
+    document.getElementById('econ-tech-lbl').textContent =
+      '− Телефония и аккаунты (' + pctStr(tPct * 100) + '% от деп.)';
+
+    // Значения
+    document.getElementById('econ-deposits').textContent = fmt(deposits);
+    document.getElementById('econ-withdraw').textContent = fmt(withdraw);
+    document.getElementById('econ-ngr').textContent = fmt(ngr);
+    document.getElementById('econ-fees').textContent = fmt(fees);
+    document.getElementById('econ-net').textContent = fmt(netRevenue);
+    document.getElementById('econ-revshare').textContent = fmt(revshare);
+    document.getElementById('econ-payroll').textContent = fmt(payroll);
+    document.getElementById('econ-tech').textContent = fmt(tech);
+    document.getElementById('econ-profit').textContent = fmt(profit);
+
+    // Маржа и подсветка
+    const margin = deposits > 0 ? (profit / deposits * 100) : 0;
+    marginBadge.textContent = 'маржа ' + margin.toFixed(1) + '%';
+
+    const profitRow = document.getElementById('econ-profit-row');
+    profitRow.classList.remove('positive', 'negative');
+    profitRow.classList.add(profit >= 0 ? 'positive' : 'negative');
+  }
+
+  function openModal() {
+    updateEconomics();
+    modal.classList.add('open');
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+  }
+
+  // Cmd+Shift+E (Mac) или Ctrl+Shift+E (Win/Linux)
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'E' || e.key === 'e' || e.code === 'KeyE')) {
+      e.preventDefault();
+      if (modal.classList.contains('open')) closeModal();
+      else openModal();
+    }
+    if (e.key === 'Escape') closeModal();
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal();
+  });
+
+  // Пересчёт при изменении любого параметра попапа или объёма
+  params.forEach(function(id) {
+    document.getElementById(id).addEventListener('input', updateEconomics);
+  });
+
+  // Пересчёт при изменении ползунков/полей основного калькулятора
+  const triggers = ['artem','cold1','cold2','vip1','vip2',
+    'a-salary','a-t1-min','a-t1-max','a-t1-pct','a-t2-min','a-t2-max','a-t2-pct','a-t3-min','a-t3-pct','a-team-pct',
+    'c-salary','c-t1-min','c-t1-max','c-t1-pct','c-t2-min','c-t2-max','c-t2-pct','c-t3-min','c-t3-pct',
+    'v-salary','v-t1-min','v-t1-max','v-t1-pct','v-t2-min','v-t2-max','v-t2-pct','v-t3-min','v-t3-pct'];
+  triggers.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() {
+      if (modal.classList.contains('open')) updateEconomics();
+    });
+  });
+})();
+</script>
+</body>
+</html>
