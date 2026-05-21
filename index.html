@@ -633,17 +633,25 @@
           <div class="stat-label">ФОТ / Депозиты</div>
           <div class="stat-value" id="payroll-pct">0%</div>
         </div>
+        <div class="stat">
+          <div class="stat-label">Прибыль</div>
+          <div class="stat-value" id="total-profit">$0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Маржинальность</div>
+          <div class="stat-value" id="total-margin">0%</div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="footer">
-    Модель «плоского» тира: при попадании в верхний диапазон процент применяется ко всему объёму.
+    Модель «плоского» тира: при попадании в верхний диапазон процент применяется ко всему объёму. Для деталей подсчёта нажмите Cmd+Shift+E (или Ctrl+Shift+E).
   </div>
 </div>
 
 <script>
-(function() {
+function initBonusCalc() {
   function num(id) { return +document.getElementById(id).value || 0; }
   function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
   function pctLabel(pct) {
@@ -767,6 +775,32 @@
     document.getElementById('total-deposits').textContent = fmt(totalDep);
     document.getElementById('total-payroll').textContent = fmt(totalPayroll);
     document.getElementById('payroll-pct').textContent = pct.toFixed(1) + '%';
+
+    // Прибыль и маржа (используют параметры из попапа экономики или дефолты)
+    function paramOrDefault(id, def) {
+      const el = document.getElementById(id);
+      return el ? (+el.value || 0) : def;
+    }
+    const wPct = paramOrDefault('p-withdraw', 45) / 100;
+    const fPct = paramOrDefault('p-fees', 65) / 100;
+    const rPct = paramOrDefault('p-revshare', 50) / 100;
+    const tPct = paramOrDefault('p-tech', 1) / 100;
+
+    const ngr = totalDep * (1 - wPct);
+    const netRevenue = ngr * (1 - fPct);
+    const profit = netRevenue * (1 - rPct) - totalPayroll - totalDep * tPct;
+    const margin = totalDep > 0 ? (profit / totalDep * 100) : 0;
+
+    const profitEl = document.getElementById('total-profit');
+    const marginEl = document.getElementById('total-margin');
+    if (profitEl) {
+      profitEl.textContent = fmt(profit);
+      profitEl.style.color = profit >= 0 ? 'var(--accent)' : 'var(--warn)';
+    }
+    if (marginEl) {
+      marginEl.textContent = margin.toFixed(1) + '%';
+      marginEl.style.color = margin >= 0 ? 'var(--accent)' : 'var(--warn)';
+    }
   }
 
   // Добавление нового сотрудника
@@ -864,8 +898,14 @@
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', update);
   });
+  window.bonusCalcUpdate = update; // expose for economics modal
   update();
-})();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBonusCalc);
+} else {
+  initBonusCalc();
+}
 </script>
 <!-- TYPE PICKER MODAL -->
 <div class="modal-backdrop" id="picker-modal">
@@ -969,7 +1009,7 @@
 
 
 <script>
-(function() {
+function initEconomics() {
   // Доступ к функциям из основного скрипта через DOM
   const modal = document.getElementById('econ-modal');
   const closeBtn = document.getElementById('modal-close');
@@ -1065,7 +1105,10 @@
 
   // Пересчёт при изменении любого параметра попапа или объёма
   params.forEach(function(id) {
-    document.getElementById(id).addEventListener('input', updateEconomics);
+    document.getElementById(id).addEventListener('input', function() {
+      updateEconomics();
+      if (window.bonusCalcUpdate) window.bonusCalcUpdate();
+    });
   });
 
   // Пересчёт при изменении ползунков/полей основного калькулятора
@@ -1079,7 +1122,12 @@
       if (modal.classList.contains('open')) updateEconomics();
     });
   });
-})();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initEconomics);
+} else {
+  initEconomics();
+}
 </script>
 </body>
 </html>
