@@ -6,7 +6,7 @@
 <title>Калькулятор бонусов колл-центра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1115;
@@ -43,6 +43,29 @@
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border);
   }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .logo {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+  }
+  .logo svg { width: 100%; height: 100%; display: block; }
+  .wordmark {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .wordmark span { display: block; }
+  .wordmark .pink { color: #FF0059; }
   h1 {
     font-size: 26px;
     font-weight: 700;
@@ -486,6 +509,14 @@
 <body>
 <div class="wrap">
   <header>
+    <div class="brand">
+      <div class="logo" aria-label="MAD">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21000 21000">
+          <polygon fill="#FF0059" points="5880.79,16560.72 3497.66,12107.84 7248.42,15350.13 3497.66,3789.94 9280.36,14580.69 10471.51,3795.15 11662.66,14580.69 17445.37,3789.94 13694.61,15350.13 17445.37,12107.84 15062.24,16560.72 "/>
+        </svg>
+      </div>
+      <div class="wordmark"><span>Mad</span><span class="pink">heads.</span></div>
+    </div>
     <h1>Калькулятор бонусов колл-центра</h1>
     <div class="subtitle">Модель ФОТ с настраиваемыми тирами и командным бонусом</div>
   </header>
