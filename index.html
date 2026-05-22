@@ -262,6 +262,14 @@
     font-size: 12px;
     color: var(--text-dim);
   }
+  .econ-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--text-dim);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .econ-link:hover { opacity: 0.7; }
   /* SECRET ECONOMICS MODAL */
   .modal-backdrop {
     position: fixed;
@@ -732,7 +740,7 @@
   </div>
 
   <div class="footer">
-    Модель «плоского» тира: при попадании в верхний диапазон процент применяется ко всему объёму. Для деталей подсчёта нажмите Cmd+Shift+E (или Ctrl+Shift+E).
+    Модель «плоского» тира: при попадании в верхний диапазон процент применяется ко всему объёму. Для деталей подсчёта нажмите <a href="#" id="open-econ-link" class="econ-link">Cmd+Shift+E</a> (или Ctrl+Shift+E).
   </div>
 </div>
 
@@ -1324,6 +1332,15 @@ function initEconomics() {
   modal.addEventListener('click', function(e) {
     if (e.target === modal) closeModal();
   });
+
+  // Клик по ссылке в футере открывает попап (удобно для мобилки)
+  const econLink = document.getElementById('open-econ-link');
+  if (econLink) {
+    econLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal();
+    });
+  }
 
   // Пересчёт при изменении любого параметра попапа или объёма
   params.forEach(function(id) {
